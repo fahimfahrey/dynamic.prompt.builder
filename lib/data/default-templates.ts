@@ -885,6 +885,9 @@ export const SELECTABLE_ROLE_PRESETS: SelectableBoilerplateOption[] = [
 
 export const SELECTABLE_TECH_STACK_CHIPS: SelectableBoilerplateOption[] = [
   { id: 'stack-nextjs', label: 'Next.js App Router', category: 'stack', snippet: '- Next.js App Router' },
+  { id: 'stack-server-actions', label: 'Server Actions (No API Routes)', category: 'stack', snippet: '- Next.js Server Actions: Execute all mutations and server logic strictly via Server Actions ("use server") instead of API route handlers (DO NOT create /api/* route files)' },
+  { id: 'stack-neondb', label: 'NeonDB (Serverless Postgres)', category: 'stack', snippet: '- NeonDB: Lakebase Serverless Postgres (@neondatabase/serverless or Drizzle / Prisma) with pooled connection string for serverless compute' },
+  { id: 'stack-pwa', label: 'PWA (Progressive Web App)', category: 'stack', snippet: '- PWA (Progressive Web App): Web App Manifest, Service Worker caching strategies, offline fallback, and installable PWA experience' },
   { id: 'stack-react19', label: 'React 19', category: 'stack', snippet: '- React 19' },
   { id: 'stack-typescript', label: 'TypeScript (Strict)', category: 'stack', snippet: '- TypeScript in strict mode (no any)' },
   { id: 'stack-css-tokens', label: 'Vanilla CSS Tokens', category: 'stack', snippet: '- Modern CSS with custom semantic design tokens' },
@@ -1016,6 +1019,12 @@ export const SELECTABLE_SKILL_CHIPS: SelectableBoilerplateOption[] = [
     label: '🚀 Vercel React Best Practices',
     category: 'skill',
     snippet: '- vercel-react-best-practices Skill: Adhere strictly to Next.js App Router and React 19 performance patterns: Server Components by default, minimal client boundaries, zero unnecessary re-renders, and fast page loads.'
+  },
+  {
+    id: 'skill-neon-postgres',
+    label: '🐘 Neon Lakebase Postgres Skill',
+    category: 'skill',
+    snippet: '- Neon Postgres Skill: Adhere to Lakebase Postgres best practices: pooled connections for serverless, direct connections for migrations, schema branching, and @neondatabase/serverless driver.'
   },
   {
     id: 'skill-antigravity',

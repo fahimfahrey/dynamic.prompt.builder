@@ -23,7 +23,8 @@ import {
   Wand2,
   ExternalLink,
   ShieldCheck,
-  Boxes
+  Boxes,
+  Database
 } from 'lucide-react';
 
 interface FirstSessionStepperModalProps {
@@ -127,6 +128,11 @@ const SKILL_PRESETS = [
     desc: 'RSC by default, minimal client boundaries, zero waterfalls, sub-100ms speed'
   },
   {
+    id: 'skill-neon-postgres',
+    name: '🐘 Neon Lakebase Postgres Skill',
+    desc: 'Lakebase serverless pooling, migrations, branching, and @neondatabase/serverless'
+  },
+  {
     id: 'skill-antigravity-guide',
     name: '🤖 Antigravity Agentic Directives',
     desc: 'Deep subagent decomposition, background execution, and persistent session state'
@@ -145,6 +151,9 @@ const SKILL_PRESETS = [
 
 const STACK_PRESETS = [
   'Next.js App Router',
+  'Server Actions (Next.js instead of API Routes)',
+  'NeonDB (Serverless Postgres)',
+  'PWA (Progressive Web App)',
   'React 19',
   'TypeScript Strict',
   'Modern CSS Tokens',
@@ -177,11 +186,12 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
   ]);
   const [selectedStacks, setSelectedStacks] = useState<string[]>([
     'Next.js App Router',
+    'Server Actions (Next.js instead of API Routes)',
+    'NeonDB (Serverless Postgres)',
     'React 19',
-    'TypeScript Strict',
-    'Modern CSS Tokens',
-    'Browser IndexedDB'
+    'TypeScript Strict'
   ]);
+  const [neonDbDetails, setNeonDbDetails] = useState('');
   const [copied, setCopied] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState<StructuredPrompt | null>(null);
 
@@ -229,9 +239,27 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
       ? nicheTheme.trim().slice(0, 48) + (nicheTheme.length > 48 ? '...' : '')
       : 'Custom AI Project Prompt';
 
-    const functionalRequirements = `1. Core User Flow: ${nicheTheme.trim()}.\n2. Architecture & Performance: ${nicheConstraints.trim()}.\n3. Real-Time Feedback: Sub-100ms interaction latency with zero cumulative layout shift (CLS).\n4. Data Integrity: Resilient client-side persistence, backup support, and responsive controls across all viewport widths.`;
+    const hasNeon = selectedStacks.some((s) => s.toLowerCase().includes('neon'));
+    const hasServerActions = selectedStacks.some((s) => s.toLowerCase().includes('server action'));
+    const hasPwa = selectedStacks.some((s) => s.toLowerCase().includes('pwa'));
+
+    const functionalRequirements = `1. Core User Flow: ${nicheTheme.trim()}.\n2. Architecture & Performance: ${nicheConstraints.trim()}.\n3. Real-Time Feedback: Sub-100ms interaction latency with zero cumulative layout shift (CLS).\n4. Data Integrity: Resilient persistence, backup support, and responsive controls across all viewport widths.${
+      hasServerActions
+        ? '\n5. Next.js Server Actions: Implement all data mutations and backend workflows strictly using Server Actions ("use server") instead of API route handlers.'
+        : ''
+    }${
+      hasPwa
+        ? '\n6. PWA Readiness: Configure web app manifest, offline service worker caching, and installability.'
+        : ''
+    }`;
 
     const techStackContent = selectedStacks.map((s) => `- ${s}`).join('\n');
+
+    const neonDirective = `1. Database Engine: Lakebase Serverless Postgres on Neon (@neondatabase/serverless, Drizzle ORM, or Prisma).
+2. Serverless Connection Pooling: Always connect using the Neon pooled connection URL (DATABASE_URL with -pooler) for serverless handlers and Next.js Server Actions to prevent connection exhaustion.
+3. Migrations & Branching: Direct connection string is reserved exclusively for migrations; leverage Neon database branching for isolated feature development.
+4. Next.js Server Actions Integration: Query Neon directly inside Server Actions ('use server') with parameterized queries and strict Zod validation.
+${neonDbDetails.trim() ? `5. User-Provided Neon Configuration & Connection Details:\n\`\`\`\n${neonDbDetails.trim()}\n\`\`\`` : '5. Environment Variables: Configure DATABASE_URL in .env.local with your Neon serverless connection string.'}`;
 
     const activeSkillsList = SKILL_PRESETS.filter((s) => selectedSkills.includes(s.id))
       .map((s) => `- ${s.name}: ${s.desc}`)
@@ -288,21 +316,41 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
         enabled: true,
         order: 5
       },
+      ...(hasNeon
+        ? [
+            {
+              id: 'sec-neondb',
+              key: 'database_specification',
+              title: 'DATABASE SPECIFICATION (NEON SERVERLESS POSTGRES)',
+              content: neonDirective,
+              enabled: true,
+              order: 6
+            }
+          ]
+        : []),
       {
         id: 'sec-arch',
         key: 'architecture_requirements',
         title: 'ARCHITECTURE REQUIREMENTS',
         content: 'Follow clean modular architecture: separate presentation UI from business logic and storage layers. Maintain offline-first reliability and responsive layout across all device widths (320px to 4K).',
         enabled: true,
-        order: 6
+        order: 7
       },
       {
         id: 'sec-constraints',
         key: 'constraints_exclusions',
         title: 'CONSTRAINTS AND EXCLUSIONS',
-        content: '- MANDATORY SKILL USAGE: DO NOT guess architectural patterns or implement ad-hoc styling; you MUST consult and adhere to relevant Agent Skills (from skills.sh or .agents/skills/) at every development step.\n- DO NOT leave lazy placeholder comments, truncated snippets, or "TODO" omissions; provide complete, runnable drop-in code.\n- DO NOT use TypeScript "any" — use strict union types and Zod schemas.\n- DO NOT break existing working components or navigation flows.\n- Ensure 100% WCAG AA contrast compliance and zero hydration errors.',
+        content: `- MANDATORY SKILL USAGE: DO NOT guess architectural patterns or implement ad-hoc styling; you MUST consult and adhere to relevant Agent Skills (from skills.sh or .agents/skills/) at every development step.\n- DO NOT leave lazy placeholder comments, truncated snippets, or "TODO" omissions; provide complete, runnable drop-in code.\n- DO NOT use TypeScript "any" — use strict union types and Zod schemas.${
+          hasServerActions
+            ? '\n- DO NOT create traditional API route handlers (/api/*); strictly use Next.js Server Actions ("use server").'
+            : ''
+        }${
+          hasNeon
+            ? '\n- DO NOT use unpooled direct database connections in serverless functions or Server Actions; always use the pooled Neon endpoint.'
+            : ''
+        }\n- DO NOT break existing working components or navigation flows.\n- Ensure 100% WCAG AA contrast compliance and zero hydration errors.`,
         enabled: true,
-        order: 7
+        order: 8
       },
       {
         id: 'sec-workflow',
@@ -310,7 +358,7 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
         title: 'IMPLEMENTATION WORKFLOW (SKILLS-DRIVEN)',
         content: 'Phase 1: Skills Discovery & Ingestion — Inspect .agents/skills/ and skills.sh to equip relevant domain skills before starting.\nPhase 2: Modular Architecture Plan — Formulate implementation steps strictly adhering to loaded skill patterns.\nPhase 3: Component & Logic Implementation — Author complete drop-in source code conforming to design systems and performance standards.\nPhase 4: Local Persistence & State — Connect verified storage with zero regressions.\nPhase 5: Automated Verification — Run unit tests and production build verification commands.',
         enabled: true,
-        order: 8
+        order: 9
       },
       {
         id: 'sec-testing',
@@ -318,7 +366,7 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
         title: 'TESTING & ACCEPTANCE CRITERIA',
         content: '- [ ] All core user flows execute seamlessly without errors.\n- [ ] UI is 100% responsive across mobile, tablet, and desktop.\n- [ ] Data persists reliably across page reloads and browser sessions.\n- [ ] Production build succeeds cleanly with zero lint or type errors.',
         enabled: true,
-        order: 9
+        order: 10
       },
       {
         id: 'sec-final',
@@ -326,7 +374,7 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
         title: 'FINAL DIRECTIVE',
         content: 'Execute the implementation directly without unnecessary conversational filler. Consult SKILL.md files where applicable, and provide complete source code ready to run immediately.',
         enabled: true,
-        order: 10
+        order: 11
       }
     ];
 
@@ -751,6 +799,62 @@ export const FirstSessionStepperModal: React.FC<FirstSessionStepperModalProps> =
                     );
                   })}
                 </div>
+
+                {/* Input field to paste Neon DB details when NeonDB is included */}
+                {selectedStacks.some((s) => s.toLowerCase().includes('neon')) && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.85rem',
+                      background: 'var(--bg-elevated)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--accent-cyan)',
+                      boxShadow: '0 2px 10px rgba(0, 240, 255, 0.08)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <label
+                        htmlFor="neondb-stepper-input"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          color: 'var(--text-primary)'
+                        }}
+                      >
+                        <Database size={14} color="var(--accent-cyan)" />
+                        Neon DB Details & Connection String:
+                      </label>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                        Lakebase Postgres
+                      </span>
+                    </div>
+                    <textarea
+                      id="neondb-stepper-input"
+                      rows={3}
+                      value={neonDbDetails}
+                      onChange={(e) => setNeonDbDetails(e.target.value)}
+                      placeholder="Paste your Neon DB connection details here (e.g. postgresql://user:password@ep-branch-123456.us-east-2.aws.neon.tech/neondb?sslmode=require, branch: dev, tables: users, posts)..."
+                      style={{
+                        width: '100%',
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '0.6rem 0.75rem',
+                        fontSize: '0.8rem',
+                        fontFamily: 'var(--font-mono, monospace)',
+                        color: 'var(--text-primary)',
+                        lineHeight: 1.45,
+                        resize: 'vertical'
+                      }}
+                    />
+                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                      💡 These details will be included in the prompt for your AI agent to configure pooled serverless database access and schema handling.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Output Format */}

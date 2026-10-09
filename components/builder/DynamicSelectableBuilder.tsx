@@ -37,7 +37,8 @@ import {
   FileCode,
   RotateCcw,
   Zap,
-  CheckCheck
+  CheckCheck,
+  Database
 } from 'lucide-react';
 
 interface DynamicSelectableBuilderProps {
@@ -94,10 +95,17 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
 
   const [selectedStacks, setSelectedStacks] = useState<string[]>(() => {
     const techSec = prompt.sections.find((s) => s.key === 'tech_stack');
-    const defaults = ['stack-nextjs', 'stack-react19', 'stack-typescript', 'stack-css-tokens', 'stack-idb', 'stack-lucide'];
+    const defaults = ['stack-nextjs', 'stack-server-actions', 'stack-neondb', 'stack-react19', 'stack-typescript'];
     if (!techSec) return defaults;
     const matches = SELECTABLE_TECH_STACK_CHIPS.filter((s) => techSec.content.includes(s.label)).map((s) => s.id);
     return matches.length > 0 ? matches : defaults;
+  });
+
+  const [neonDbDetails, setNeonDbDetails] = useState<string>(() => {
+    const dbSec = prompt.sections.find((s) => s.key === 'database_specification');
+    if (!dbSec) return '';
+    const match = dbSec.content.match(/Connection & Configuration Details:\s*```[\r\n]+([\s\S]*?)```/);
+    return match ? match[1].trim() : '';
   });
 
   const [selectedGuardrails, setSelectedGuardrails] = useState<string[]>(() => {
@@ -135,10 +143,15 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       guardrailIds: string[],
       workflowId: string,
       testingIds: string[],
-      archIds: string[]
+      archIds: string[],
+      neonDetails: string = neonDbDetails
     ) => {
       const roleItem = SELECTABLE_ROLE_PRESETS.find((r) => r.id === roleId) || SELECTABLE_ROLE_PRESETS[0];
       const workflowItem = SELECTABLE_WORKFLOW_PRESETS.find((w) => w.id === workflowId) || SELECTABLE_WORKFLOW_PRESETS[0];
+
+      const hasNeon = stackIds.includes('stack-neondb');
+      const hasServerActions = stackIds.includes('stack-server-actions');
+      const hasPwa = stackIds.includes('stack-pwa');
 
       const skillsContent = SELECTABLE_SKILL_CHIPS.filter((sk) => skillIds.includes(sk.id))
         .map((sk) => sk.snippet)
@@ -160,7 +173,15 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
         .map((a) => `- ${a.snippet}`)
         .join('\n');
 
-      const functionalContent = `1. Implement primary user workflow: ${line1.trim()}.\n2. Handle core constraints: ${line2.trim()}.\n3. Provide immediate UI feedback, instant updates, and zero layout shift.\n4. Support data backup, export, and responsive controls across all screen sizes.`;
+      const functionalContent = `1. Implement primary user workflow: ${line1.trim()}.\n2. Handle core constraints: ${line2.trim()}.\n3. Provide immediate UI feedback, instant updates, and zero layout shift.\n4. Support data backup, export, and responsive controls across all screen sizes.${
+        hasServerActions ? '\n5. Next.js Server Actions: Implement all data mutations and backend logic strictly via Server Actions ("use server") instead of API routes.' : ''
+      }${hasPwa ? '\n6. PWA: Configure web app manifest, offline service worker caching, and installability.' : ''}`;
+
+      const neonDirective = `1. Database Engine: Lakebase Serverless Postgres on Neon (@neondatabase/serverless or Drizzle / Prisma).
+2. Serverless Connection Pooling: Always connect using the Neon pooled connection URL (DATABASE_URL with -pooler) for serverless compute and Next.js Server Actions to prevent connection exhaustion.
+3. Migrations & Branching: Direct connection string is reserved exclusively for migrations; leverage Neon database branching for isolated feature development.
+4. Next.js Server Actions Integration: Query Neon directly inside Server Actions ('use server') with parameterized queries and strict Zod validation.
+${neonDetails.trim() ? `5. User-Provided Neon Configuration & Connection Details:\n\`\`\`\n${neonDetails.trim()}\n\`\`\`` : '5. Environment Variables: Configure DATABASE_URL in .env.local with your Neon serverless connection string.'}`;
 
       const acceptanceContent = testingContent.length > 0 ? testingContent : '- [ ] All workflows verified and production build passes cleanly.';
 
@@ -220,21 +241,35 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           enabled: true,
           order: 5
         },
+        ...(hasNeon
+          ? [
+              {
+                id: 'sec-neondb',
+                key: 'database_specification',
+                title: 'DATABASE SPECIFICATION (NEON SERVERLESS POSTGRES)',
+                content: neonDirective,
+                enabled: true,
+                order: 6
+              }
+            ]
+          : []),
         {
           id: 'sec-arch',
           key: 'architecture_requirements',
           title: 'ARCHITECTURE REQUIREMENTS',
           content: archContent || 'Follow clean modular architecture: separate presentation UI from business logic and storage layers.',
           enabled: true,
-          order: 6
+          order: 7
         },
         {
           id: 'sec-constraints',
           key: 'constraints_exclusions',
           title: 'CONSTRAINTS AND EXCLUSIONS',
-          content: guardrailsContent || '- MANDATORY SKILL USAGE: Consult and adhere to relevant Agent Skills (from skills.sh or .agents/skills/) at every development step.\n- DO NOT use lazy placeholder comments or truncated "TODO" implementations.\n- DO NOT use TypeScript "any".',
+          content: `${guardrailsContent || '- MANDATORY SKILL USAGE: Consult and adhere to relevant Agent Skills (from skills.sh or .agents/skills/) at every development step.\n- DO NOT use lazy placeholder comments or truncated "TODO" implementations.\n- DO NOT use TypeScript "any".'}${
+            hasServerActions ? '\n- DO NOT create traditional API route handlers (/api/*); strictly use Next.js Server Actions ("use server").' : ''
+          }${hasNeon ? '\n- DO NOT use unpooled direct database connections in Server Actions; always use the pooled Neon endpoint.' : ''}`,
           enabled: true,
-          order: 7
+          order: 8
         },
         {
           id: 'sec-workflow',
@@ -242,7 +277,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           title: 'IMPLEMENTATION WORKFLOW (SKILLS-DRIVEN)',
           content: workflowItem.snippet,
           enabled: true,
-          order: 8
+          order: 9
         },
         {
           id: 'sec-testing',
@@ -250,7 +285,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           title: 'TESTING STRATEGY',
           content: 'Write automated unit tests for business logic and state transformations. Verify build succeeds with zero TypeScript or lint errors.',
           enabled: true,
-          order: 9
+          order: 10
         },
         {
           id: 'sec-acceptance',
@@ -258,7 +293,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           title: 'ACCEPTANCE CRITERIA',
           content: acceptanceContent,
           enabled: true,
-          order: 10
+          order: 11
         },
         {
           id: 'sec-deliverables',
@@ -266,7 +301,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           title: 'DELIVERABLES',
           content: deliverablesContent,
           enabled: true,
-          order: 11
+          order: 12
         },
         {
           id: 'sec-final',
@@ -274,7 +309,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           title: 'FINAL DIRECTIVE',
           content: finalInstructionsContent,
           enabled: true,
-          order: 12
+          order: 13
         }
       ];
 
@@ -325,7 +360,24 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       selectedGuardrails,
       templateId === 'tmpl-root-cause-debugger' ? 'wf-surgical' : 'wf-phased',
       selectedTesting,
-      selectedArchitecture
+      selectedArchitecture,
+      neonDbDetails
+    );
+  };
+
+  const handleNeonDbDetailsChange = (val: string) => {
+    setNeonDbDetails(val);
+    syncDynamicSections(
+      themeLine1,
+      themeLine2,
+      selectedRole,
+      selectedSkills,
+      selectedStacks,
+      selectedGuardrails,
+      selectedWorkflow,
+      selectedTesting,
+      selectedArchitecture,
+      val
     );
   };
 
@@ -335,7 +387,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       ? selectedSkills.filter((s) => s !== id)
       : [...selectedSkills, id];
     setSelectedSkills(updated);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, updated, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, updated, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const toggleStack = (id: string) => {
@@ -343,7 +395,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       ? selectedStacks.filter((s) => s !== id)
       : [...selectedStacks, id];
     setSelectedStacks(updated);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, updated, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, updated, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const toggleGuardrail = (id: string) => {
@@ -351,7 +403,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       ? selectedGuardrails.filter((g) => g !== id)
       : [...selectedGuardrails, id];
     setSelectedGuardrails(updated);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, updated, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, updated, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const toggleTesting = (id: string) => {
@@ -359,7 +411,7 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       ? selectedTesting.filter((t) => t !== id)
       : [...selectedTesting, id];
     setSelectedTesting(updated);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, updated, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, updated, selectedArchitecture, neonDbDetails);
   };
 
   const toggleArchitecture = (id: string) => {
@@ -367,27 +419,27 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
       ? selectedArchitecture.filter((a) => a !== id)
       : [...selectedArchitecture, id];
     setSelectedArchitecture(updated);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, updated);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, updated, neonDbDetails);
   };
 
   const handleRoleChange = (roleId: string) => {
     setSelectedRole(roleId);
-    syncDynamicSections(themeLine1, themeLine2, roleId, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, roleId, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const handleWorkflowChange = (wfId: string) => {
     setSelectedWorkflow(wfId);
-    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, wfId, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, wfId, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const handleLine1Change = (val: string) => {
     setThemeLine1(val);
-    syncDynamicSections(val, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(val, themeLine2, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   const handleLine2Change = (val: string) => {
     setThemeLine2(val);
-    syncDynamicSections(themeLine1, val, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture);
+    syncDynamicSections(themeLine1, val, selectedRole, selectedSkills, selectedStacks, selectedGuardrails, selectedWorkflow, selectedTesting, selectedArchitecture, neonDbDetails);
   };
 
   // Download handlers
@@ -562,11 +614,11 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
           </div>
         </div>
 
-        {/* Tech Stack */}
+        {/* Technologies to Enforce */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              Tech Stack ({selectedStacks.length})
+              Technologies to Enforce ({selectedStacks.length})
             </span>
           </div>
           <div className="chip-group">
@@ -584,6 +636,60 @@ export const DynamicSelectableBuilder: React.FC<DynamicSelectableBuilderProps> =
               );
             })}
           </div>
+
+          {/* Conditional Neon DB Details Input */}
+          {selectedStacks.includes('stack-neondb') && (
+            <div
+              style={{
+                marginTop: '0.75rem',
+                padding: '0.85rem',
+                background: 'var(--bg-elevated)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--accent-cyan)',
+                boxShadow: '0 2px 8px rgba(0, 240, 255, 0.08)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <Database size={13} color="var(--accent-cyan)" />
+                  Neon DB Connection & Configuration Details:
+                </label>
+                <span style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  Lakebase Postgres
+                </span>
+              </div>
+              <textarea
+                rows={3}
+                value={neonDbDetails}
+                onChange={(e) => handleNeonDbDetailsChange(e.target.value)}
+                placeholder="Paste your Neon DB connection string or details (e.g. postgresql://user:password@ep-branch-123456.us-east-2.aws.neon.tech/neondb?sslmode=require, branch: dev, tables: users, posts)..."
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.55rem 0.7rem',
+                  fontSize: '0.78rem',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.45,
+                  resize: 'vertical'
+                }}
+              />
+              <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                💡 Connection parameters and schema instructions are embedded into the prompt for the AI agent to configure pooled database access.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Guardrails */}

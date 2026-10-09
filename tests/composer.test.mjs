@@ -319,6 +319,132 @@ describe('Prompt Composer Engine Suite', () => {
     assert.ok(audit.score >= 99, `Antigravity skills.sh prompt scored ${audit.score}, expected >= 99`);
     assert.equal(audit.grade, 'A+');
   });
+
+  test('synthesizes prompt with NeonDB, Next.js Server Actions, PWA, and Neon connection details scoring 99+', () => {
+    const nicheTheme = 'Build a SaaS lead generator and analytics portal';
+    const nicheConstraints = 'Serverless Lakebase Postgres, Next.js App Router, Server Actions, PWA offline support';
+    const neonDetails = 'postgresql://user:secret@ep-cool-branch.us-east-2.aws.neon.tech/neondb?sslmode=require\nBranch: staging\nTables: leads, events, teams';
+
+    const neonDirective = `1. Database Engine: Lakebase Serverless Postgres on Neon (@neondatabase/serverless or Drizzle / Prisma).
+2. Serverless Connection Pooling: Always connect using the Neon pooled connection URL (DATABASE_URL with -pooler) for serverless compute and Next.js Server Actions to prevent connection exhaustion.
+3. Migrations & Branching: Direct connection string is reserved exclusively for migrations; leverage Neon database branching for isolated feature development.
+4. Next.js Server Actions Integration: Query Neon directly inside Server Actions ('use server') with parameterized queries and strict Zod validation.
+Connection & Configuration Details:
+\`\`\`
+${neonDetails}
+\`\`\``;
+
+    const sections = [
+      {
+        id: '1',
+        key: 'role',
+        title: 'ROLE AND EXPERTISE',
+        content: 'You are an elite Google Antigravity (AGY) Autonomous Lead Agent and Principal Software Architect powered by Google DeepMind.',
+        enabled: true,
+        order: 0
+      },
+      {
+        id: '2',
+        key: 'agent_skills',
+        title: 'AGENT SKILLS & EXECUTION PROTOCOL (SKILLS.SH)',
+        content: 'At EVERY phase and step of development, verify and invoke specialized domain skills from skills.sh (or local .agents/skills/): Neon Postgres Skill, Vercel React Best Practices, UI/UX Pro Max.',
+        enabled: true,
+        order: 1
+      },
+      {
+        id: '3',
+        key: 'project_context',
+        title: 'PROJECT CONTEXT',
+        content: nicheConstraints,
+        enabled: true,
+        order: 2
+      },
+      {
+        id: '4',
+        key: 'objective',
+        title: 'OBJECTIVE',
+        content: nicheTheme,
+        enabled: true,
+        order: 3
+      },
+      {
+        id: '5',
+        key: 'functional_requirements',
+        title: 'FUNCTIONAL REQUIREMENTS',
+        content: `1. Core flow: ${nicheTheme}.\n2. Server Actions: Implement all data mutations and backend workflows strictly using Server Actions ('use server') instead of API route handlers.\n3. PWA Readiness: Web app manifest and service worker caching strategy.`,
+        enabled: true,
+        order: 4
+      },
+      {
+        id: '6',
+        key: 'tech_stack',
+        title: 'TECHNOLOGY STACK',
+        content: '- Next.js App Router (TypeScript Strict)\n- Server Actions (Next.js instead of API Routes)\n- NeonDB (Serverless Postgres)\n- PWA (Progressive Web App)\n- React 19',
+        enabled: true,
+        order: 5
+      },
+      {
+        id: '7',
+        key: 'database_specification',
+        title: 'DATABASE SPECIFICATION (NEON SERVERLESS POSTGRES)',
+        content: neonDirective,
+        enabled: true,
+        order: 6
+      },
+      {
+        id: '8',
+        key: 'architecture_requirements',
+        title: 'ARCHITECTURE REQUIREMENTS',
+        content: 'Clean modular architecture separating UI presentation from domain stores. PWA manifest and service worker registration for offline caching.',
+        enabled: true,
+        order: 7
+      },
+      {
+        id: '9',
+        key: 'constraints_exclusions',
+        title: 'CONSTRAINTS AND EXCLUSIONS',
+        content: '- DO NOT create traditional API route handlers (/api/*); strictly use Next.js Server Actions ("use server").\n- DO NOT use unpooled direct database connections in Server Actions; always use the pooled Neon endpoint.\n- DO NOT leave placeholder comments or "TODO" omissions.\n- DO NOT use TypeScript any.',
+        enabled: true,
+        order: 8
+      },
+      {
+        id: '10',
+        key: 'implementation_workflow',
+        title: 'IMPLEMENTATION WORKFLOW (SKILLS-DRIVEN)',
+        content: 'Phase 1: Ingest Neon & Vercel skills → Phase 2: Schema plan → Phase 3: Implement Server Actions and UI → Phase 4: Verification',
+        enabled: true,
+        order: 9
+      },
+      {
+        id: '11',
+        key: 'testing_strategy',
+        title: 'TESTING & ACCEPTANCE CRITERIA',
+        content: '- [ ] Server Actions query Neon cleanly with pooled connection.\n- [ ] PWA installs with valid manifest.\n- [ ] Zero build or type errors.',
+        enabled: true,
+        order: 10
+      },
+      {
+        id: '12',
+        key: 'final_instructions',
+        title: 'FINAL DIRECTIVE',
+        content: 'Execute directly adhering to Neon serverless pooling and Next.js Server Actions directives.',
+        enabled: true,
+        order: 11
+      }
+    ];
+
+    const composed = composePrompt(sections, 'markdown');
+    const audit = auditPromptQuality(sections, composed);
+
+    assert.ok(composed.includes('NeonDB'));
+    assert.ok(composed.includes('Server Actions'));
+    assert.ok(composed.includes('PWA (Progressive Web App)'));
+    assert.ok(composed.includes('ep-cool-branch.us-east-2.aws.neon.tech'));
+    assert.ok(composed.includes('DO NOT create traditional API route handlers'));
+    assert.ok(audit.score >= 99, `NeonDB Server Actions prompt scored ${audit.score}, expected >= 99`);
+    assert.equal(audit.grade, 'A+');
+  });
 });
+
 
 
